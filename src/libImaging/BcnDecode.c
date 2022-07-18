@@ -24,10 +24,6 @@ typedef struct {
 } lum;
 
 typedef struct {
-    FLOAT32 r, g, b;
-} rgb32f;
-
-typedef struct {
     UINT16 c0, c1;
     UINT32 lut;
 } bc1_color;
@@ -667,22 +663,22 @@ half_to_float(UINT16 h) {
     return o.f;
 }
 
-static float
+static UINT8
 bc6_finalize(int v, int sign) {
     if (sign) {
         if (v < 0) {
             v = ((-v) * 31) / 32;
-            return half_to_float((UINT16)(0x8000 | v));
+            return (UINT8)half_to_float((UINT16)(0x8000 | v));
         } else {
-            return half_to_float((UINT16)((v * 31) / 32));
+            return (UINT8)half_to_float((UINT16)((v * 31) / 32));
         }
     } else {
-        return half_to_float((UINT16)((v * 31) / 64));
+        return (UINT8)half_to_float((UINT16)((v * 31) / 64));
     }
 }
 
 static void
-bc6_lerp(rgb32f *col, int *e0, int *e1, int s, int sign) {
+bc6_lerp(rgba *col, int *e0, int *e1, int s, int sign) {
     int r, g, b;
     int t = 64 - s;
     r = (e0[0] * t + e1[0] * s) >> 6;
@@ -694,7 +690,7 @@ bc6_lerp(rgb32f *col, int *e0, int *e1, int s, int sign) {
 }
 
 static void
-decode_bc6_block(rgb32f *col, const UINT8 *src, int sign) {
+decode_bc6_block(rgba *col, const UINT8 *src, int sign) {
     UINT16 endpoints[12]; /* storage for r0, g0, b0, r1, ... */
     int ueps[12];
     int i, i0, ib2, di, dw, mask, numep, s;
@@ -744,7 +740,7 @@ decode_bc6_block(rgb32f *col, const UINT8 *src, int sign) {
     }
     if (sign || info->tr) { /* sign-extend e1,2,3 if signed or deltas */
         for (i = 3; i < numep; i += 3) {
-            bc6_sign_extend(&endpoints[i + 0], info->rb);
+            bc6_sign_extend(&endpoints[i], info->rb);
             bc6_sign_extend(&endpoints[i + 1], info->gb);
             bc6_sign_extend(&endpoints[i + 2], info->bb);
         }
@@ -757,7 +753,7 @@ decode_bc6_block(rgb32f *col, const UINT8 *src, int sign) {
         }
         if (sign) {
             for (i = 3; i < numep; i += 3) {
-                bc6_sign_extend(&endpoints[i + 0], info->rb);
+                bc6_sign_extend(&endpoints[i], info->rb);
                 bc6_sign_extend(&endpoints[i + 1], info->gb);
                 bc6_sign_extend(&endpoints[i + 2], info->bb);
             }
@@ -864,7 +860,7 @@ decode_bcn(
             break;
         case 6:
             while (bytes >= 16) {
-                rgb32f col[16];
+                rgba col[16];
                 decode_bc6_block(col, ptr, (state->state >> 4) & 1);
                 put_block(im, state, (const char *)col, sizeof(col[0]), C);
                 ptr += 16;
