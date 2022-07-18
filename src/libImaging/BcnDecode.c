@@ -673,7 +673,7 @@ bc6_finalize(int v, int sign) {
             return (UINT8)half_to_float((UINT16)((v * 31) / 32));
         }
     } else {
-        return (UINT8)half_to_float((UINT16)((v * 31) / 64));
+        return v >> 8;
     }
 }
 
